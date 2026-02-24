@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Resume Analyzer</title>
+
+    <style>
+
+        body{
+            margin:0;
+            font-family:"Segoe UI", Roboto, Arial, sans-serif;
+            background:linear-gradient(135deg,#eef2ff,#f8fbff);
+            transition:background .3s, color .3s;
+        }
+
+        body.dark{
+            background:#020617;
+            color:#e5e7eb;
+        }
+
+        /* MAIN CONTAINER */
+        .container{
+            max-width:900px;
+            margin:40px auto;
+            background:white;
+            padding:35px;
+            border-radius:14px;
+            box-shadow:0 15px 40px rgba(0,0,0,0.08);
+        }
+
+        /* TITLE */
+        h1{
+            margin:0 0 25px;
+            font-weight:600;
+        }
+
+        /* DROP ZONE */
+        #dropArea{
+            border:2px dashed #c7d2fe;
+            background:#f8faff;
+            padding:40px;
+            text-align:center;
+            border-radius:12px;
+            transition:.25s;
+        }
+
+        #dropArea:hover{
+            border-color:#4f6df5;
+            box-shadow:0 0 0 3px rgba(79,109,245,0.15);
+        }
+
+        /* BUTTONS */
+        .btn{
+            padding:12px 22px;
+            border:none;
+            border-radius:8px;
+            cursor:pointer;
+            font-weight:500;
+            margin-top:15px;
+            margin-right:10px;
+        }
+
+        .primary{
+            background:#4f6df5;
+            color:white;
+        }
+
+        .primary:hover{ background:#3b56e0; }
+
+        .secondary{
+            background:#e9edff;
+            color:#2d3edb;
+        }
+
+        .secondary:hover{ background:#dde3ff; }
+
+        /* RESULT BOX */
+        .result{
+            margin-top:25px;
+            background:#f7f9ff;
+            border-left:5px solid #4f6df5;
+            padding:18px;
+            border-radius:8px;
+            white-space:pre-line;
+        }
+
+        /* HISTORY */
+        .history{
+            margin-top:35px;
+        }
+
+        /* HISTORY CARD */
+        .card{
+            background:white;
+            border-radius:10px;
+            padding:18px;
+            margin-top:14px;
+            border:1px solid #eef1ff;
+            box-shadow:0 5px 18px rgba(0,0,0,0.05);
+        }
+
+        .card b{ font-size:16px; }
+        .card small{ color:#888; }
+
+        .card button{
+            margin-top:10px;
+            background:#4f6df5;
+            color:white;
+            border:none;
+            padding:8px 16px;
+            border-radius:6px;
+            cursor:pointer;
+        }
+
+        .card button:hover{ background:#3b56e0; }
+
+        .loading{
+            margin-top:10px;
+            color:#666;
+        }
+
+        .dark .navbar{
+            background:#020617 !important;
+            color:#e5e7eb;
+            box-shadow:0 3px 12px rgba(0,0,0,0.4);
+        }
+
+        .dark .logo{ color:#e5e7eb; }
+
+        .dark .dark-toggle{
+            background:#1f2937;
+            color:#e5e7eb;
+        }
+
+        .dark .container{ background:#0b1220; }
+
+        .dark .card{
+            background:#111827;
+            border-color:#1f2937;
+        }
+
+        .dark .result{
+            background:#111827;
+            border-left:5px solid #6366f1;
+        }
+
+        /* ===== FIX UPLOAD BOX ===== */
+        .dark #dropArea{
+            background:#020617;
+            border:2px dashed #334155;
+            color:#cbd5e1;
+        }
+
+        .dark #dropArea:hover{
+            background:#020617;
+            border-color:#6366f1;
+            box-shadow:0 0 0 2px rgba(99,102,241,0.15);
+        }
+
+        .dark input[type="file"]{
+            color:#e5e7eb;
+        }
+
+        .dark .primary{ background:#6366f1; }
+
+        .dark .secondary{
+            background:#1f2937;
+            color:#c7d2fe;
+        }
+        .dark .skill{
+        background:#3f1d1d;
+        color:#fecaca;
+        }
+
+        .navbar{
+            background:white;
+            padding:15px 40px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            box-shadow:0 3px 12px rgba(0,0,0,0.05);
+            transition:background .3s, color .3s, box-shadow .3s;
+        }
+
+        .logo{
+            font-size:18px;
+            font-weight:600;
+        }
+
+        .dark-toggle{
+            padding:8px 14px;
+            border-radius:6px;
+            border:none;
+            cursor:pointer;
+            background:#f1f5f9;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="logo">
+        📄 <span>AI Resume Analyzer</span>
+    </div>
+
+    <button class="dark-toggle" onclick="toggleDarkMode()">
+        🌙 Dark Mode
+    </button>
+</header>
+
+<div class="container">
+
+    <h1>📄 AI Resume Analyzer</h1>
+
+    <div id="dropArea">
+        <p><strong>Drag & Drop Resume Here</strong></p>
+        <p>or</p>
+        <input type="file" id="file">
+    </div>
+    <textarea id="jobDesc" placeholder="Paste Job Description here..."
+              style="width:100%;height:120px;margin-bottom:15px;padding:10px;border-radius:8px;border:1px solid #ccc;"></textarea>
+
+    <button class="btn primary" onclick="upload()">Analyze Resume</button>
+    <button class="btn secondary" onclick="loadHistory()">Load History</button>
+
+    <div id="loading" class="loading"></div>
+
+    <div id="progressBar"
+         style="height:6px;width:0;background:#4f6df5;margin-top:10px;border-radius:4px;transition:.3s;">
+    </div>
+
+    <div id="result" class="result"></div>
+
+    <div class="history">
+        <h2>Previous Analyses</h2>
+        <div id="historyList"></div>
+    </div>
+
+</div>
+
+<script>
+
+    async function upload(){
+
+        const file=document.getElementById("file").files[0];
+
+        if(!file){
+            alert("Please select file");
+            return;
+        }
+
+        const formData=new FormData();
+        formData.append("file",file);
+        formData.append("jobDescription", document.getElementById("jobDesc").value);
+
+        loading("Uploading...");
+        document.getElementById("progressBar").style.width="30%";
+
+        const res=await fetch("/resume/analyze-job",{method:"POST",body:formData});
+
+        document.getElementById("progressBar").style.width="100%";
+        setTimeout(()=>document.getElementById("progressBar").style.width="0",800);
+        setTimeout(()=>document.getElementById("progressBar").style.width="0",800);
+
+        try{
+
+            const res=await fetch("/resume/analyze",{method:"POST",body:formData});
+            const data=await res.json();
+
+            loading("");
+
+            document.getElementById("result").textContent=
+                "✅ Strengths:\n"+data.strengths+
+                "\n\n❌ Missing Skills:\n"+data.missingSkills+
+                "\n\n💡 Suggestions:\n"+data.suggestions.map(s=>"• "+s).join("\n")+
+                "\n\n🎯 Job Match Score:\n"+data.jobMatchScore;
+
+        }catch(e){
+            loading("");
+            document.getElementById("result").textContent="Error: "+e;
+        }
+    }
+
+    async function loadHistory(){
+
+        loading("Loading history...");
+
+        try{
+
+            const res=await fetch("/resume/history");
+            const data=await res.json();
+
+            loading("");
+
+            let html="";
+
+            if(!data.length) html="No history found";
+
+            data.reverse().forEach(item=>{
+                html+=`
+                <div class="card">
+                    <b>${item.fileName}</b><br>
+                    <small>${item.createdDate}</small>
+
+                    <p><b>Strengths:</b> ${item.strengths}</p>
+                    <p><b>Missing Skills:</b><br>
+                    ${item.missingSkills.split(",").map(s=>
+                    `<span style="
+                    background:#fee2e2;
+                    color:#b91c1c;
+                    padding:4px 10px;
+                    border-radius:10px;
+                    margin-right:6px;
+                    display:inline-block;
+                    margin-top:5px;
+                    ">${s.trim()}</span>`
+                    ).join("")}
+                    </p>
+                    <p><b>Suggestions:</b> ${item.suggestions}</p>
+
+                    <p><b>Score:</b>
+                        <span style="
+                            padding:4px 10px;
+                            border-radius:12px;
+                            color:white;
+                            background:${getScoreColor(item.jobMatchScore)};
+                        ">
+                            ${item.jobMatchScore}
+                        </span>
+                    </p>
+
+                    <div style="margin-top:10px">
+                    <button onclick="downloadPdf(${item.id})">
+                      Download PDF
+                    </button>
+
+                    <button onclick="deleteHistory(${item.id})"
+                     style="background:#ef4444;margin-left:8px;">
+                        Delete
+                    </button>
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById("historyList").innerHTML=html;
+
+        }catch(e){
+            loading("");
+            document.getElementById("historyList").innerHTML="Error loading history";
+        }
+    }
+
+    function downloadPdf(id){
+        window.open("/resume/pdf/"+id);
+    }
+
+    function loading(msg){
+        document.getElementById("loading").textContent=msg;
+    }
+
+    const dropArea=document.getElementById("dropArea");
+
+    dropArea.addEventListener("dragover",e=>{
+        e.preventDefault();
+        dropArea.style.background="#eef3ff";
+    });
+
+    dropArea.addEventListener("dragleave",()=>{
+        dropArea.style.background="";
+    });
+
+    dropArea.addEventListener("drop",e=>{
+        e.preventDefault();
+        dropArea.style.background="";
+        document.getElementById("file").files=e.dataTransfer.files;
+    });
+
+    function toggleDarkMode(){
+
+        document.body.classList.toggle("dark");
+
+        const btn=document.querySelector(".dark-toggle");
+
+        if(document.body.classList.contains("dark")){
+            btn.textContent="☀ Light Mode";
+        }else{
+            btn.textContent="🌙 Dark Mode";
+        }
+    }
+
+    function getScoreColor(score){
+
+        const num=parseInt(score);
+
+        if(num>=80) return "#22c55e";
+        if(num>=60) return "#f59e0b";
+        return "#ef4444";
+    }
+    async function deleteHistory(id){
+
+    if(!confirm("Delete this analysis?")) return;
+
+    await fetch("/resume/history/"+id,{
+        method:"DELETE"
+    });
+
+    loadHistory(); // reload list
+}
+
+</script>
+
+</body>
+</html>
