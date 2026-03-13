@@ -159,8 +159,14 @@ public class ResumeService {
 
             // ✅ extract suggestions list properly
             List<String> suggestions = new ArrayList<>();
-            parsed.path("suggestions").forEach(n -> suggestions.add(n.asText()));
 
+            JsonNode suggestionsNode = parsed.path("suggestions");
+
+            if (suggestionsNode.isArray()) {
+                suggestionsNode.forEach(n -> suggestions.add(n.asText()));
+            } else if (suggestionsNode.isTextual()) {
+                suggestions.add(suggestionsNode.asText());
+            }
             // ✅ save to DB (INCLUDING job description)
             ResumeAnalysis entity = ResumeAnalysis.builder()
                     .fileName(file.getOriginalFilename())

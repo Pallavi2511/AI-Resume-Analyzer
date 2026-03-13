@@ -243,170 +243,185 @@
 
     async function upload(){
 
-        const file=document.getElementById("file").files[0];
+     const file = document.getElementById("file").files[0];
+     const jobDesc = document.getElementById("jobDesc").value;
 
-        if(!file){
-            alert("Please select file");
-            return;
-        }
+     if(!file){
+         alert("Please select file");
+         return;
+     }
 
-        const formData=new FormData();
-        formData.append("file",file);
-        formData.append("jobDescription", document.getElementById("jobDesc").value);
+     const formData = new FormData();
+     formData.append("file", file);
 
-        loading("Uploading...");
-        document.getElementById("progressBar").style.width="30%";
+     if(jobDesc && jobDesc.trim().length > 0){
+         formData.append("jobDescription", jobDesc);
+     }
 
-        const res=await fetch("/resume/analyze-job",{method:"POST",body:formData});
+     loading("Analyzing...");
+     document.getElementById("progressBar").style.width="40%";
 
-        document.getElementById("progressBar").style.width="100%";
-        setTimeout(()=>document.getElementById("progressBar").style.width="0",800);
-        setTimeout(()=>document.getElementById("progressBar").style.width="0",800);
+     let endpoint="/resume/analyze";
 
-        try{
+     if(jobDesc && jobDesc.trim().length > 0){
+         endpoint="/resume/analyze-job";
+     }
 
-            const res=await fetch("/resume/analyze",{method:"POST",body:formData});
-            const data=await res.json();
+     try{
 
-            loading("");
+         const res = await fetch(endpoint,{
+             method:"POST",
+             body:formData
+         });
 
-            document.getElementById("result").textContent=
-                "✅ Strengths:\n"+data.strengths+
-                "\n\n❌ Missing Skills:\n"+data.missingSkills+
-                "\n\n💡 Suggestions:\n"+data.suggestions.map(s=>"• "+s).join("\n")+
-                "\n\n🎯 Job Match Score:\n"+data.jobMatchScore;
+         const data = await res.json();
 
-        }catch(e){
-            loading("");
-            document.getElementById("result").textContent="Error: "+e;
-        }
-    }
+         document.getElementById("progressBar").style.width="100%";
+         setTimeout(()=>document.getElementById("progressBar").style.width="0",800);
 
-    async function loadHistory(){
+         loading("");
 
-        loading("Loading history...");
+         const suggestions = Array.isArray(data.suggestions)
+             ? data.suggestions.map(s=>"• "+s).join("\n")
+             : data.suggestions;
 
-        try{
+         document.getElementById("result").textContent =
+             "✅ Strengths:\n" + (data.strengths || "Not detected") +
+             "\n\n❌ Missing Skills:\n" + (data.missingSkills || "None") +
+             "\n\n💡 Suggestions:\n" + (suggestions || "None") +
+             "\n\n🎯 Job Match Score:\n" + (data.jobMatchScore || "N/A");
 
-            const res=await fetch("/resume/history");
-            const data=await res.json();
+     }catch(e){
+         loading("");
+         document.getElementById("result").textContent="Error: "+e;
+     }
+ }
 
-            loading("");
+     async function loadHistory(){
 
-            let html="";
+         loading("Loading history...");
 
-            if(!data.length) html="No history found";
+         try{
 
-            data.reverse().forEach(item=>{
-                html+=`
-                <div class="card">
-                    <b>${item.fileName}</b><br>
-                    <small>${item.createdDate}</small>
+             const res=await fetch("/resume/history");
+             const data=await res.json();
 
-                    <p><b>Strengths:</b> ${item.strengths}</p>
-                    <p><b>Missing Skills:</b><br>
-                    ${item.missingSkills.split(",").map(s=>
-                    `<span style="
-                    background:#fee2e2;
-                    color:#b91c1c;
-                    padding:4px 10px;
-                    border-radius:10px;
-                    margin-right:6px;
-                    display:inline-block;
-                    margin-top:5px;
-                    ">${s.trim()}</span>`
-                    ).join("")}
-                    </p>
-                    <p><b>Suggestions:</b> ${item.suggestions}</p>
+             loading("");
 
-                    <p><b>Score:</b>
-                        <span style="
-                            padding:4px 10px;
-                            border-radius:12px;
-                            color:white;
-                            background:${getScoreColor(item.jobMatchScore)};
-                        ">
-                            ${item.jobMatchScore}
-                        </span>
-                    </p>
+             let html="";
 
-                    <div style="margin-top:10px">
-                    <button onclick="downloadPdf(${item.id})">
-                      Download PDF
-                    </button>
+             if(!data.length) html="No history found";
 
-                    <button onclick="deleteHistory(${item.id})"
-                     style="background:#ef4444;margin-left:8px;">
-                        Delete
-                    </button>
-                    </div>
-                </div>`;
-            });
+             data.reverse().forEach(item=>{
+                 html+=`
+                 <div class="card">
+                     <b>${item.fileName}</b><br>
+                     <small>${item.createdDate}</small>
 
-            document.getElementById("historyList").innerHTML=html;
+                     <p><b>Strengths:</b> ${item.strengths}</p>
+                     <p><b>Missing Skills:</b><br>
+                     ${item.missingSkills.split(",").map(s=>
+                     `<span style="
+                     background:#fee2e2;
+                     color:#b91c1c;
+                     padding:4px 10px;
+                     border-radius:10px;
+                     margin-right:6px;
+                     display:inline-block;
+                     margin-top:5px;
+                     ">${s.trim()}</span>`
+                     ).join("")}
+                     </p>
+                     <p><b>Suggestions:</b> ${item.suggestions}</p>
 
-        }catch(e){
-            loading("");
-            document.getElementById("historyList").innerHTML="Error loading history";
-        }
-    }
+                     <p><b>Score:</b>
+                         <span style="
+                             padding:4px 10px;
+                             border-radius:12px;
+                             color:white;
+                             background:${getScoreColor(item.jobMatchScore)};
+                         ">
+                             ${item.jobMatchScore}
+                         </span>
+                     </p>
 
-    function downloadPdf(id){
-        window.open("/resume/pdf/"+id);
-    }
+                     <div style="margin-top:10px">
+                     <button onclick="downloadPdf(${item.id})">
+                       Download PDF
+                     </button>
 
-    function loading(msg){
-        document.getElementById("loading").textContent=msg;
-    }
+                     <button onclick="deleteHistory(${item.id})"
+                      style="background:#ef4444;margin-left:8px;">
+                         Delete
+                     </button>
+                     </div>
+                 </div>`;
+             });
 
-    const dropArea=document.getElementById("dropArea");
+             document.getElementById("historyList").innerHTML=html;
 
-    dropArea.addEventListener("dragover",e=>{
-        e.preventDefault();
-        dropArea.style.background="#eef3ff";
-    });
+         }catch(e){
+             loading("");
+             document.getElementById("historyList").innerHTML="Error loading history";
+         }
+     }
 
-    dropArea.addEventListener("dragleave",()=>{
-        dropArea.style.background="";
-    });
+     function downloadPdf(id){
+         window.open("/resume/pdf/"+id);
+     }
 
-    dropArea.addEventListener("drop",e=>{
-        e.preventDefault();
-        dropArea.style.background="";
-        document.getElementById("file").files=e.dataTransfer.files;
-    });
+     function loading(msg){
+         document.getElementById("loading").textContent=msg;
+     }
 
-    function toggleDarkMode(){
+     const dropArea=document.getElementById("dropArea");
 
-        document.body.classList.toggle("dark");
+     dropArea.addEventListener("dragover",e=>{
+         e.preventDefault();
+         dropArea.style.background="#eef3ff";
+     });
 
-        const btn=document.querySelector(".dark-toggle");
+     dropArea.addEventListener("dragleave",()=>{
+         dropArea.style.background="";
+     });
 
-        if(document.body.classList.contains("dark")){
-            btn.textContent="☀ Light Mode";
-        }else{
-            btn.textContent="🌙 Dark Mode";
-        }
-    }
+     dropArea.addEventListener("drop",e=>{
+         e.preventDefault();
+         dropArea.style.background="";
+         document.getElementById("file").files=e.dataTransfer.files;
+     });
 
-    function getScoreColor(score){
+     function toggleDarkMode(){
 
-        const num=parseInt(score);
+         document.body.classList.toggle("dark");
 
-        if(num>=80) return "#22c55e";
-        if(num>=60) return "#f59e0b";
-        return "#ef4444";
-    }
-    async function deleteHistory(id){
+         const btn=document.querySelector(".dark-toggle");
 
-    if(!confirm("Delete this analysis?")) return;
+         if(document.body.classList.contains("dark")){
+             btn.textContent="☀ Light Mode";
+         }else{
+             btn.textContent="🌙 Dark Mode";
+         }
+     }
 
-    await fetch("/resume/history/"+id,{
-        method:"DELETE"
-    });
+     function getScoreColor(score){
 
-    loadHistory(); // reload list
-}
+         const num=parseInt(score);
+
+         if(num>=80) return "#22c55e";
+         if(num>=60) return "#f59e0b";
+         return "#ef4444";
+     }
+     async function deleteHistory(id){
+
+     if(!confirm("Delete this analysis?")) return;
+
+     await fetch("/resume/history/"+id,{
+         method:"DELETE"
+     });
+
+     loadHistory(); // reload list
+ }
 
 </script>
 
